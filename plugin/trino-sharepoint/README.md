@@ -5,14 +5,12 @@ A Trino connector for querying SharePoint data using SQL.
 ## Build
 
 ```bash
-# Build the SharePoint plugin
-./mvnw clean install -DskipTests -pl :trino-sharepoint -am
-
-# Build the Trino server
-./mvnw clean install -DskipTests -pl :trino-server -am
+# Build minimal components: SharePoint connector, Trino server, and CLI
+./mvnw clean install -DskipTests -pl :trino-sharepoint,:trino-server,:trino-cli -am
 
 # Copy plugin to server
-cp -r plugin/trino-sharepoint/target/trino-sharepoint-446 core/trino-server/target/trino-server-446/plugin/sharepoint
+cp -r plugin/trino-sharepoint/target/trino-sharepoint-446 \
+  core/trino-server/target/trino-server-446/plugin/sharepoint
 ```
 
 ## Configuration
