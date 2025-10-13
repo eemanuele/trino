@@ -2,55 +2,35 @@
 
 A Trino connector for querying SharePoint data using SQL.
 
-## Build
+## Quick Start (Development)
+
+The fastest way to develop and test the SharePoint connector is using Trino's development server, which loads plugins directly from source without manual copying.
+
+### Build
 
 ```bash
-# Build minimal components: SharePoint connector, Trino server, and CLI
-./mvnw clean install -DskipTests -pl :trino-sharepoint,:trino-server,:trino-cli -am
-
-# Copy plugin to server
-cp -r plugin/trino-sharepoint/target/trino-sharepoint-446 \
-  core/trino-server/target/trino-server-446/plugin/sharepoint
+# Build SharePoint connector and development server
+./mvnw clean install -DskipTests -pl :trino-sharepoint,:trino-server-dev,:trino-cli -am
 ```
 
-## Configuration
+### Configuration
 
-Create configuration files in the `etc/` directory at the repository root:
+The development server is already configured to load the SharePoint plugin at `testing/trino-server-dev/etc/config.properties`.
 
-### etc/config.properties
-```properties
-coordinator=true
-node-scheduler.include-coordinator=true
-http-server.http.port=8080
-discovery.uri=http://localhost:8080
-```
+Create your SharePoint catalog configuration:
 
-### etc/node.properties
-```properties
-node.environment=development
-node.id=trino-dev
-node.internal-address=localhost
-node.data-dir=/tmp/trino-data
-```
-
-### etc/jvm.config
-```
--server
--Xmx4G
--XX:+UseG1GC
--XX:+ExitOnOutOfMemoryError
-```
-
-### etc/catalog/sharepoint.properties
+**`testing/trino-server-dev/etc/catalog/sharepoint.properties`**
 ```properties
 connector.name=sharepoint
 sharepoint.site-url=https://example.sharepoint.com
 ```
 
-## Start Server
+### Start Server
 
 ```bash
-core/trino-server/target/trino-server-446/bin/launcher run --etc-dir=etc
+./mvnw exec:java -pl :trino-server-dev \
+  -Dexec.mainClass="io.trino.server.DevelopmentServer" \
+  -Dexec.args="--etc-dir=testing/trino-server-dev/etc"
 ```
 
 Wait for the message: `======== SERVER STARTED ========`
@@ -78,3 +58,19 @@ java -jar client/trino-cli/target/trino-cli-477-executable.jar \
 | Property | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `sharepoint.site-url` | SharePoint site URL | Yes | - |
+
+## Production Deployment
+
+For production deployment using the full Trino server distribution:
+
+```bash
+# Build full server with all plugins
+./mvnw clean install -DskipTests -pl :trino-server,:trino-cli -am
+
+# Copy SharePoint plugin to server distribution
+cp -r plugin/trino-sharepoint/target/trino-sharepoint-446 \
+  core/trino-server/target/trino-server-446/plugin/sharepoint
+
+# Start server
+core/trino-server/target/trino-server-446/bin/launcher run --etc-dir=etc
+```
