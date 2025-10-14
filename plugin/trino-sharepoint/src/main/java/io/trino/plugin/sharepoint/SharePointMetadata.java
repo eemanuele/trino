@@ -36,11 +36,13 @@ public class SharePointMetadata
         implements ConnectorMetadata
 {
     private final SharePointConfig config;
+    private final SharePointClient client;
 
     @Inject
-    public SharePointMetadata(SharePointConfig config)
+    public SharePointMetadata(SharePointConfig config, SharePointClient client)
     {
         this.config = requireNonNull(config, "config is null");
+        this.client = requireNonNull(client, "client is null");
     }
 
     @Override
@@ -52,8 +54,15 @@ public class SharePointMetadata
     @Override
     public List<SchemaTableName> listTables(ConnectorSession session, Optional<String> schemaName)
     {
-        // Return an example table
-        return ImmutableList.of(new SchemaTableName("default", "documents"));
+        try {
+            List<SharePointClient.SharePointList> lists = client.getLists();
+            return lists.stream()
+                    .map(list -> new SchemaTableName("default", list.name))
+                    .collect(ImmutableList.toImmutableList());
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to list SharePoint tables", e);
+        }
     }
 
     @Override
@@ -62,10 +71,20 @@ public class SharePointMetadata
         if (!tableName.getSchemaName().equals("default")) {
             return null;
         }
-        if (!tableName.getTableName().equals("documents")) {
-            return null;
+
+        try {
+            List<SharePointClient.SharePointList> lists = client.getLists();
+            for (SharePointClient.SharePointList list : lists) {
+                if (list.name.equals(tableName.getTableName())) {
+                    return new SharePointTableHandle(tableName.getSchemaName(), tableName.getTableName(), list.id);
+                }
+            }
         }
-        return new SharePointTableHandle(tableName.getSchemaName(), tableName.getTableName());
+        catch (Exception e) {
+            throw new RuntimeException("Failed to get table handle", e);
+        }
+
+        return null;
     }
 
     @Override
@@ -73,24 +92,45 @@ public class SharePointMetadata
     {
         SharePointTableHandle tableHandle = (SharePointTableHandle) table;
 
-        // Define example columns
-        List<ColumnMetadata> columns = ImmutableList.of(
-                new ColumnMetadata("id", BigintType.BIGINT),
-                new ColumnMetadata("name", VarcharType.VARCHAR),
-                new ColumnMetadata("created", VarcharType.VARCHAR));
+        try {
+            List<Map<String, Object>> columns = client.getColumns(tableHandle.listId());
 
-        return new ConnectorTableMetadata(
-                new SchemaTableName(tableHandle.schemaName(), tableHandle.tableName()),
-                columns);
+            ImmutableList.Builder<ColumnMetadata> columnMetadata = ImmutableList.builder();
+            for (Map<String, Object> column : columns) {
+                String columnName = (String) column.get("name");
+                // Map SharePoint types to Trino types (simplified for now)
+                columnMetadata.add(new ColumnMetadata(columnName, VarcharType.VARCHAR));
+            }
+
+            return new ConnectorTableMetadata(
+                    new SchemaTableName(tableHandle.schemaName(), tableHandle.tableName()),
+                    columnMetadata.build());
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to get table metadata", e);
+        }
     }
 
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        return ImmutableMap.of(
-                "id", new SharePointColumnHandle("id", BigintType.BIGINT, 0),
-                "name", new SharePointColumnHandle("name", VarcharType.VARCHAR, 1),
-                "created", new SharePointColumnHandle("created", VarcharType.VARCHAR, 2));
+        SharePointTableHandle handle = (SharePointTableHandle) tableHandle;
+
+        try {
+            List<Map<String, Object>> columns = client.getColumns(handle.listId());
+
+            ImmutableMap.Builder<String, ColumnHandle> columnHandles = ImmutableMap.builder();
+            for (int i = 0; i < columns.size(); i++) {
+                Map<String, Object> column = columns.get(i);
+                String columnName = (String) column.get("name");
+                columnHandles.put(columnName, new SharePointColumnHandle(columnName, VarcharType.VARCHAR, i));
+            }
+
+            return columnHandles.buildOrThrow();
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to get column handles", e);
+        }
     }
 
     @Override

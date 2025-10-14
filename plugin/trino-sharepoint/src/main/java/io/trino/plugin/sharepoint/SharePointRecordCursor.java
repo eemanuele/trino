@@ -20,23 +20,19 @@ import io.trino.spi.connector.RecordCursor;
 import io.trino.spi.type.Type;
 
 import java.util.List;
+import java.util.Map;
 
 public class SharePointRecordCursor
         implements RecordCursor
 {
     private final List<SharePointColumnHandle> columns;
-    private final List<List<Object>> rows;
+    private final List<Map<String, Object>> rows;
     private int currentRow = -1;
 
-    public SharePointRecordCursor(List<SharePointColumnHandle> columns)
+    public SharePointRecordCursor(List<SharePointColumnHandle> columns, List<Map<String, Object>> items)
     {
         this.columns = columns;
-
-        // Example data - 3 rows
-        this.rows = ImmutableList.of(
-                ImmutableList.of(1L, "Project Proposal.docx", "2025-01-15"),
-                ImmutableList.of(2L, "Meeting Notes.docx", "2025-02-20"),
-                ImmutableList.of(3L, "Budget 2025.xlsx", "2025-03-10"));
+        this.rows = items;
     }
 
     @Override
@@ -73,7 +69,14 @@ public class SharePointRecordCursor
     @Override
     public long getLong(int field)
     {
-        return (Long) rows.get(currentRow).get(field);
+        SharePointColumnHandle column = columns.get(field);
+        Map<String, Object> item = rows.get(currentRow);
+        Map<String, Object> fields = (Map<String, Object>) item.get("fields");
+        Object value = fields.get(column.name());
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return 0L;
     }
 
     @Override
@@ -85,7 +88,14 @@ public class SharePointRecordCursor
     @Override
     public Slice getSlice(int field)
     {
-        return Slices.utf8Slice((String) rows.get(currentRow).get(field));
+        SharePointColumnHandle column = columns.get(field);
+        Map<String, Object> item = rows.get(currentRow);
+        Map<String, Object> fields = (Map<String, Object>) item.get("fields");
+        Object value = fields.get(column.name());
+        if (value == null) {
+            return Slices.utf8Slice("");
+        }
+        return Slices.utf8Slice(String.valueOf(value));
     }
 
     @Override
@@ -97,7 +107,10 @@ public class SharePointRecordCursor
     @Override
     public boolean isNull(int field)
     {
-        return rows.get(currentRow).get(field) == null;
+        SharePointColumnHandle column = columns.get(field);
+        Map<String, Object> item = rows.get(currentRow);
+        Map<String, Object> fields = (Map<String, Object>) item.get("fields");
+        return fields.get(column.name()) == null;
     }
 
     @Override

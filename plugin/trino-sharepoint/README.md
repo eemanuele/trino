@@ -28,10 +28,13 @@ node.internal-address=localhost
 
 **`etc/config.properties`** - Server configuration with minimal settings for development (concurrent startup, HTTP port 8080, discovery URI, timeouts)
 
-**`etc/catalog/sharepoint.properties`** - Update with your SharePoint site URL:
+**`etc/catalog/sharepoint.properties`** - Update with your Azure and SharePoint configuration:
 ```properties
 connector.name=sharepoint
-sharepoint.site-url=https://your-site.sharepoint.com
+sharepoint.site-url=https://your-tenant.sharepoint.com/sites/your-site
+sharepoint.tenant-id=your-azure-tenant-id
+sharepoint.client-id=your-azure-app-client-id
+sharepoint.client-secret=your-azure-app-client-secret
 ```
 
 ### Start Server
@@ -73,7 +76,22 @@ SHOW TABLES;
 
 | Property | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `sharepoint.site-url` | SharePoint site URL | Yes | - |
+| `sharepoint.site-url` | SharePoint site URL (e.g., https://tenant.sharepoint.com/sites/mysite) | Yes | - |
+| `sharepoint.tenant-id` | Azure AD tenant ID | Yes | - |
+| `sharepoint.client-id` | Azure AD application (client) ID | Yes | - |
+| `sharepoint.client-secret` | Azure AD application client secret | Yes | - |
+
+### Azure App Registration Setup
+
+To use this connector, you need to create an Azure App Registration:
+
+1. Go to Azure Portal > Azure Active Directory > App registrations
+2. Create a new registration
+3. Under "API permissions", add:
+   - Microsoft Graph > Application permissions > Sites.Read.All
+4. Grant admin consent for the permissions
+5. Under "Certificates & secrets", create a new client secret
+6. Note the Application (client) ID, Directory (tenant) ID, and client secret value
 
 ## Notes
 

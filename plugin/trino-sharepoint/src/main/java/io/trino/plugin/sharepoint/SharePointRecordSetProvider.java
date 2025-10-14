@@ -31,9 +31,12 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 public class SharePointRecordSetProvider
         implements ConnectorRecordSetProvider
 {
+    private final SharePointClient client;
+
     @Inject
-    public SharePointRecordSetProvider()
+    public SharePointRecordSetProvider(SharePointClient client)
     {
+        this.client = client;
     }
 
     @Override
@@ -44,6 +47,7 @@ public class SharePointRecordSetProvider
             ConnectorTableHandle table,
             List<? extends ColumnHandle> columns)
     {
+        SharePointTableHandle tableHandle = (SharePointTableHandle) table;
         List<SharePointColumnHandle> sharePointColumns = columns.stream()
                 .map(SharePointColumnHandle.class::cast)
                 .collect(toImmutableList());
@@ -61,7 +65,13 @@ public class SharePointRecordSetProvider
             @Override
             public RecordCursor cursor()
             {
-                return new SharePointRecordCursor(sharePointColumns);
+                try {
+                    List<java.util.Map<String, Object>> items = client.getListItems(tableHandle.listId());
+                    return new SharePointRecordCursor(sharePointColumns, items);
+                }
+                catch (Exception e) {
+                    throw new RuntimeException("Failed to fetch SharePoint data", e);
+                }
             }
         };
     }

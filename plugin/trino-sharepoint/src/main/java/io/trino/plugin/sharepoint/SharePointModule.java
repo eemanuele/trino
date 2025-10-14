@@ -29,6 +29,8 @@ public class SharePointModule
         binder.bind(SharePointMetadata.class).in(Scopes.SINGLETON);
         binder.bind(SharePointSplitManager.class).in(Scopes.SINGLETON);
         binder.bind(SharePointRecordSetProvider.class).in(Scopes.SINGLETON);
+        binder.bind(SharePointAuthClient.class).in(Scopes.SINGLETON);
+        binder.bind(SharePointClient.class).in(Scopes.SINGLETON);
 
         configBinder(binder).bindConfig(SharePointConfig.class);
     }

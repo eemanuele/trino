@@ -15,11 +15,16 @@ package io.trino.plugin.sharepoint;
 
 import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigDescription;
+import jakarta.validation.constraints.NotNull;
 
 public class SharePointConfig
 {
     private String siteUrl;
+    private String tenantId;
+    private String clientId;
+    private String clientSecret;
 
+    @NotNull
     public String getSiteUrl()
     {
         return siteUrl;
@@ -30,6 +35,48 @@ public class SharePointConfig
     public SharePointConfig setSiteUrl(String siteUrl)
     {
         this.siteUrl = siteUrl;
+        return this;
+    }
+
+    @NotNull
+    public String getTenantId()
+    {
+        return tenantId;
+    }
+
+    @Config("sharepoint.tenant-id")
+    @ConfigDescription("Azure AD tenant ID")
+    public SharePointConfig setTenantId(String tenantId)
+    {
+        this.tenantId = tenantId;
+        return this;
+    }
+
+    @NotNull
+    public String getClientId()
+    {
+        return clientId;
+    }
+
+    @Config("sharepoint.client-id")
+    @ConfigDescription("Azure AD application (client) ID")
+    public SharePointConfig setClientId(String clientId)
+    {
+        this.clientId = clientId;
+        return this;
+    }
+
+    @NotNull
+    public String getClientSecret()
+    {
+        return clientSecret;
+    }
+
+    @Config("sharepoint.client-secret")
+    @ConfigDescription("Azure AD application client secret")
+    public SharePointConfig setClientSecret(String clientSecret)
+    {
+        this.clientSecret = clientSecret;
         return this;
     }
 }

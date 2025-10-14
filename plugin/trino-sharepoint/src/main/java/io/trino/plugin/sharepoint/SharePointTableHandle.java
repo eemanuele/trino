@@ -15,5 +15,5 @@ package io.trino.plugin.sharepoint;
 
 import io.trino.spi.connector.ConnectorTableHandle;
 
-public record SharePointTableHandle(String schemaName, String tableName)
+public record SharePointTableHandle(String schemaName, String tableName, String listId)
         implements ConnectorTableHandle {}
