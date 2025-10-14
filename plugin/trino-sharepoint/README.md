@@ -2,115 +2,49 @@
 
 A Trino connector for querying SharePoint data using SQL.
 
-## Quick Start (Development)
-
-The fastest way to develop and test the SharePoint connector is using Trino's development server, which loads plugins directly from source without manual copying.
+## Development Setup
 
 ### Build
 
 ```bash
-# Build SharePoint connector and development server
-./mvnw clean install -DskipTests -pl :trino-sharepoint,:trino-server-dev,:trino-cli -am
+# Build SharePoint connector, CLI, and Trino server
+./mvnw clean install -DskipTests -pl :trino-sharepoint,:trino-server,:trino-cli -am
+```
+
+### Install Plugin
+
+```bash
+# Copy SharePoint plugin to server distribution
+cp -r plugin/trino-sharepoint/target/trino-sharepoint-446 \
+  core/trino-server/target/trino-server-446/plugin/sharepoint
 ```
 
 ### Configuration
 
-Set up the configuration files in `testing/trino-server-dev/etc/`:
+The configuration files are already set up in `etc/`:
 
-**`testing/trino-server-dev/etc/node.properties`**
+**`etc/node.properties`**
 ```properties
 node.environment=test
 node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
 node.internal-address=localhost
 ```
 
-**`testing/trino-server-dev/etc/config.properties`**
-```properties
-#
-# WARNING
-# ^^^^^^^
-# This configuration file is for development only and should NOT be used
-# in production. For example configuration, see the Trino documentation.
-#
+**`etc/config.properties`** - Server configuration with minimal settings for development
 
-# sample nodeId to provide consistency across test runs
-node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
-node.environment=test
-node.internal-address=localhost
-experimental.concurrent-startup=true
-http-server.http.port=8080
-
-discovery.uri=http://localhost:8080
-
-exchange.http-client.max-connections-per-server=1000
-exchange.http-client.connect-timeout=1m
-exchange.http-client.idle-timeout=1m
-
-scheduler.http-client.max-connections-per-server=1000
-scheduler.http-client.connect-timeout=1m
-scheduler.http-client.idle-timeout=1m
-
-query.client.timeout=5m
-query.min-expire-age=30m
-
-plugin.bundles=\
-  plugin/trino-tpch/pom.xml, \
-  plugin/trino-sharepoint/pom.xml
-
-node-scheduler.include-coordinator=true
-```
-
-**`testing/trino-server-dev/etc/jvm.config`**
-```properties
-#
-# WARNING
-# ^^^^^^^
-# This configuration file is for development only and should NOT be used
-# in production. For example configuration, see the Trino documentation.
-#
-```
-
-**`testing/trino-server-dev/etc/log.properties`**
-```properties
-#
-# WARNING
-# ^^^^^^^
-# This configuration file is for development only and should NOT be used
-# in production. For example configuration, see the Trino documentation.
-#
-
-io.trino=INFO
-
-# show classpath for plugins
-io.trino.server.PluginManager=DEBUG
-
-# Maven plugin loading code
-com.ning.http.client=WARN
-```
-
-**`testing/trino-server-dev/etc/access-control.properties`**
-```properties
-access-control.name=default
-```
-
-**`testing/trino-server-dev/etc/catalog/sharepoint.properties`**
+**`etc/catalog/sharepoint.properties`** - Update with your SharePoint site URL:
 ```properties
 connector.name=sharepoint
-sharepoint.site-url=https://example.sharepoint.com
+sharepoint.site-url=https://your-site.sharepoint.com
 ```
 
 ### Start Server
 
 ```bash
-./mvnw exec:java -pl :trino-server-dev \
-  -Dexec.mainClass="io.trino.server.DevelopmentServer" \
-  -Dexec.systemProperties \
-  -Dnode.environment=test \
-  -Dnode.id=ffffffff-ffff-ffff-ffff-ffffffffffff \
-  "-Dplugin.bundles=plugin/trino-tpch/pom.xml,plugin/trino-sharepoint/pom.xml"
+core/trino-server/target/trino-server-446/bin/launcher run --etc-dir=etc
 ```
 
-Wait for the message: `======== SERVER STARTED ========`
+Wait for startup to complete, then the server will be available at `http://localhost:8080`
 
 ## Query
 
@@ -136,18 +70,10 @@ java -jar client/trino-cli/target/trino-cli-477-executable.jar \
 |----------|-------------|----------|---------|
 | `sharepoint.site-url` | SharePoint site URL | Yes | - |
 
-## Production Deployment
+## Notes
 
-For production deployment using the full Trino server distribution:
+### Why not use DevelopmentServer?
 
-```bash
-# Build full server with all plugins
-./mvnw clean install -DskipTests -pl :trino-server,:trino-cli -am
+The `DevelopmentServer` approach (using `trino-server-dev` with Maven-based plugin loading) depends on `io.airlift.resolver` which includes Maven 3.0.4 as a transitive dependency. Maven 3.0.4 is from 2012 and has known security vulnerabilities that may be flagged by security scanning tools.
 
-# Copy SharePoint plugin to server distribution
-cp -r plugin/trino-sharepoint/target/trino-sharepoint-446 \
-  core/trino-server/target/trino-server-446/plugin/sharepoint
-
-# Start server
-core/trino-server/target/trino-server-446/bin/launcher run --etc-dir=etc
-```
+For this reason, this guide uses the production server approach with pre-built plugins, which avoids the problematic dependency while still providing a fast development workflow.
