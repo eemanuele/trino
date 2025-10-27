@@ -13,7 +13,6 @@
  */
 package io.trino.plugin.sharepoint;
 
-import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.trino.spi.connector.RecordCursor;

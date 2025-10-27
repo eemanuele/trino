@@ -23,13 +23,13 @@ import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
-import io.trino.spi.type.BigintType;
 import io.trino.spi.type.VarcharType;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class SharePointMetadata
@@ -58,7 +58,7 @@ public class SharePointMetadata
             List<SharePointClient.SharePointList> lists = client.getLists();
             return lists.stream()
                     .map(list -> new SchemaTableName("default", list.name))
-                    .collect(ImmutableList.toImmutableList());
+                    .collect(toImmutableList());
         }
         catch (Exception e) {
             throw new RuntimeException("Failed to list SharePoint tables", e);
